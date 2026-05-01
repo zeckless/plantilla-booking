@@ -1,12 +1,17 @@
 import { Resend } from "resend"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
+import { createEvent } from "ics"
 import { getBusinessSettings } from "./business-settings"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 function formatCLP(amount: number) {
-  return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(amount)
+  return new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  }).format(amount)
 }
 
 interface ConfirmationEmailArgs {
@@ -17,18 +22,64 @@ interface ConfirmationEmailArgs {
   depositPaid: number
   balanceDue: number
   appointmentId: string
+  duration: number
+  confirmToken: string
+  cancelToken: string
 }
 
 export async function sendConfirmationEmail(args: ConfirmationEmailArgs) {
-  const { to, clientName, serviceName, date, depositPaid, balanceDue, appointmentId } = args
+  const {
+    to,
+    clientName,
+    serviceName,
+    date,
+    depositPaid,
+    balanceDue,
+    appointmentId,
+    duration,
+    confirmToken,
+    cancelToken,
+  } = args
 
   const formattedDate = format(date, "EEEE d 'de' MMMM 'de' yyyy", { locale: es })
   const formattedTime = format(date, "HH:mm")
   const dbSettings = await getBusinessSettings()
-  const businessName = dbSettings.name || process.env.BUSINESS_NAME || "Barbería & Estética"
-  const businessEmail = dbSettings.email || process.env.BUSINESS_EMAIL || "contacto@barberia.cl"
-  const businessPhone = dbSettings.phone || process.env.BUSINESS_PHONE || "+56 9 1234 5678"
+  const businessName =
+    dbSettings.name || process.env.BUSINESS_NAME || "Barbería & Estética"
+  const businessEmail =
+    dbSettings.email || process.env.BUSINESS_EMAIL || "contacto@barberia.cl"
+  const businessPhone =
+    dbSettings.phone || process.env.BUSINESS_PHONE || "+56 9 1234 5678"
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"
+
+  const confirmUrl = `${appUrl}/api/appointments/${appointmentId}/confirm?token=${confirmToken}`
+  const cancelUrl = `${appUrl}/api/appointments/${appointmentId}/cancel?token=${cancelToken}`
+
+  const endDate = new Date(date.getTime() + duration * 60 * 1000)
+
+  const { error: icsError, value: icsFile } = createEvent({
+    start: [
+      date.getFullYear(),
+      date.getMonth() + 1,
+      date.getDate(),
+      date.getHours(),
+      date.getMinutes(),
+    ],
+    end: [
+      endDate.getFullYear(),
+      endDate.getMonth() + 1,
+      endDate.getDate(),
+      endDate.getHours(),
+      endDate.getMinutes(),
+    ],
+    title: `${serviceName} - ${businessName}`,
+    description: `Reserva de ${clientName} para ${serviceName}. Seña pagada: ${formatCLP(depositPaid)}`,
+    location: dbSettings.address || "",
+    status: "CONFIRMED",
+    busyPriority: 5,
+    organizer: { name: businessName, email: businessEmail },
+    attendees: [{ name: clientName, email: to }],
+  })
 
   const html = `
 <!DOCTYPE html>
@@ -68,7 +119,7 @@ export async function sendConfirmationEmail(args: ConfirmationEmailArgs) {
                       ¡Reserva confirmada!
                     </h1>
                     <p style="margin:0;font-size:14px;color:#6b6460;">
-                      Hola ${clientName}, tu turno está agendado.
+                      Hola ${clientName}, tu turno esta agendado.
                     </p>
                   </td>
                 </tr>
@@ -89,7 +140,7 @@ export async function sendConfirmationEmail(args: ConfirmationEmailArgs) {
                         <td style="padding-bottom:16px;">
                           <p style="margin:0 0 4px;font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#a89e98;">Fecha y hora</p>
                           <p style="margin:0;font-size:15px;font-weight:600;color:#1a1612;text-transform:capitalize;">${formattedDate}</p>
-                          <p style="margin:4px 0 0;font-size:14px;color:#6b6460;">${formattedTime} hs</p>
+                          <p style="margin:4px 0 0;font-size:14px;color:#6b6460;">${formattedTime} hrs</p>
                         </td>
                       </tr>
 
@@ -116,6 +167,28 @@ export async function sendConfirmationEmail(args: ConfirmationEmailArgs) {
                         </td>
                       </tr>
 
+                      <!-- Action buttons -->
+                      <tr>
+                        <td style="padding:24px 0 0;">
+                          <table width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td align="center" style="padding-bottom:12px;">
+                                <a href="${confirmUrl}" style="display:inline-block;background:#a87878;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:14px 32px;border-radius:12px;">
+                                  Confirmar mi cita
+                                </a>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td align="center">
+                                <a href="${cancelUrl}" style="display:inline-block;background:#f5eaea;color:#a87878;text-decoration:none;font-size:13px;font-weight:500;padding:12px 28px;border-radius:12px;border:1px solid #e2dbd2;">
+                                  Cancelar cita
+                                </a>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+
                     </table>
                   </td>
                 </tr>
@@ -124,10 +197,10 @@ export async function sendConfirmationEmail(args: ConfirmationEmailArgs) {
                 <tr>
                   <td style="padding:24px 40px;background:#f5f0ea;border-top:1px solid #e2dbd2;border-radius:0 0 20px 20px;">
                     <p style="margin:0 0 8px;font-size:13px;color:#6b6460;line-height:1.6;">
-                      Si necesitas cancelar o reprogramar tu turno, contáctanos con anticipación.
+                      Si necesitas cancelar o reprogramar tu turno, contactanos con anticipacion.
                     </p>
                     <p style="margin:0;font-size:13px;color:#6b6460;">
-                      📞 <a href="tel:${businessPhone.replace(/\s/g, '')}" style="color:#a87878;text-decoration:none;">${businessPhone}</a>
+                      📞 <a href="tel:${businessPhone.replace(/\s/g, "")}" style="color:#a87878;text-decoration:none;">${businessPhone}</a>
                       &nbsp;&nbsp;·&nbsp;&nbsp;
                       ✉️ <a href="mailto:${businessEmail}" style="color:#a87878;text-decoration:none;">${businessEmail}</a>
                     </p>
@@ -141,7 +214,7 @@ export async function sendConfirmationEmail(args: ConfirmationEmailArgs) {
           <tr>
             <td style="padding-top:24px;text-align:center;">
               <p style="margin:0;font-size:11px;color:#a89e98;">
-                ${businessName} · Pago procesado de forma segura con Webpay Plus
+                ${businessName} · Pago procesado de forma segura con Khipu
               </p>
             </td>
           </tr>
@@ -155,15 +228,23 @@ export async function sendConfirmationEmail(args: ConfirmationEmailArgs) {
 `
 
   try {
+    const attachments = []
+    if (icsFile && !icsError) {
+      attachments.push({
+        filename: "reserva.ics",
+        content: Buffer.from(icsFile).toString("base64"),
+      })
+    }
+
     await resend.emails.send({
       from: `${businessName} <reservas@${process.env.RESEND_DOMAIN || "resend.dev"}>`,
       to,
       subject: `✓ Reserva confirmada — ${serviceName}`,
       html,
+      attachments,
     })
     console.log("[email] confirmation sent to", to)
   } catch (error) {
-    // Don't fail the payment flow if email fails
     console.error("[email] failed to send confirmation:", error)
   }
 }

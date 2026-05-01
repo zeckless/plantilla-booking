@@ -49,6 +49,8 @@ model Appointment {
   status        AppointmentStatus @default(PENDING)
   paymentStatus PaymentStatus @default(PENDING)
   paymentRef    String?  // Token de Webpay
+  confirmToken  String?
+  cancelToken   String?
   notes         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -85,6 +87,15 @@ model BusinessSettings {
   mapsEmbedUrl String?
 
   @@map("business_settings")
+}
+
+model TimeSlot {
+  id        String   @id @default(cuid())
+  datetime  DateTime @unique
+  isBooked  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("time_slots")
 }
 
 model BusinessHours {

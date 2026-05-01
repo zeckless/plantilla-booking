@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { webpay } from "@/lib/webpay"
+import { createKhipuPayment } from "@/lib/khipu"
+import { randomBytes } from "crypto"
 
 export const runtime = "nodejs"
+
+function generateToken(): string {
+  return randomBytes(32).toString("hex")
+}
 
 interface CheckoutBody {
   serviceId: string
@@ -102,6 +107,8 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    const confirmToken = generateToken()
+    const cancelToken = generateToken()
     const appointment = await prisma.appointment.create({
       data: {
         date: appointmentDate,
@@ -110,26 +117,51 @@ export async function POST(request: NextRequest) {
         notes: contactInfo.notes,
         status: "PENDING",
         paymentStatus: "PENDING",
+        confirmToken,
+        cancelToken,
       },
     })
 
-    const buyOrder = appointment.id.slice(0, 26)
-    const sessionId = user.id.slice(0, 61)
-    const amount = service.deposit
     const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-    const returnUrl = `${baseUrl}/api/checkout/webpay/return`
+      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"
+    const returnUrl = `${baseUrl}/api/checkout/khipu/return`
+    const cancelUrl = `${baseUrl}/book/cancel?reason=user&aid=${appointment.id}`
+    // notify_url requires a public HTTPS URL — skip it in local dev
+    const isLocal = baseUrl.includes("localhost")
 
-    const tx = await webpay.create(buyOrder, sessionId, amount, returnUrl)
+    let paymentUrl: string
+    let paymentId: string
+    try {
+      ;({ paymentUrl, paymentId } = await createKhipuPayment({
+        amount: service.deposit,
+        subject: `Seña ${service.name} - ${contactInfo.name}${contactInfo.lastName ? ` ${contactInfo.lastName}` : ""}`,
+        appointmentId: appointment.id,
+        payerName: `${contactInfo.name}${contactInfo.lastName ? ` ${contactInfo.lastName}` : ""}`,
+        payerEmail: contactInfo.email,
+        returnUrl,
+        cancelUrl,
+        notifyUrl: isLocal ? undefined : `${baseUrl}/api/checkout/khipu/notify`,
+      }))
+    } catch (khipuError) {
+      // Si falla el pago, eliminar la cita para que el horario quede libre
+      await prisma.appointment.delete({ where: { id: appointment.id } })
+      throw khipuError
+    }
 
     await prisma.appointment.update({
       where: { id: appointment.id },
-      data: { paymentRef: tx.token },
+      data: { paymentRef: paymentId },
+    })
+
+    // Mark the time slot as booked so it's no longer available
+    await prisma.timeSlot.updateMany({
+      where: { datetime: appointmentDate, isBooked: false },
+      data: { isBooked: true },
     })
 
     return NextResponse.json({
-      token: tx.token,
-      url: tx.url,
+      paymentUrl,
+      paymentId,
       appointmentId: appointment.id,
     })
   } catch (error) {

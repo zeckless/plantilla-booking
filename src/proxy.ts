@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 
-export const runtime = "nodejs"
-
 const ADMIN_COOKIE = "admin_session"
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname
   const expected =
     process.env.ADMIN_SESSION_TOKEN || "dev-session-token-change-me"

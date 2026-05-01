@@ -38,5 +38,13 @@ export async function PATCH(
     include: { user: true, service: true },
   })
 
+  // If cancelled, free up the time slot so it can be booked again
+  if (body.status === "CANCELLED" || body.status === "NO_SHOW") {
+    await prisma.timeSlot.updateMany({
+      where: { datetime: updated.date, isBooked: true },
+      data: { isBooked: false },
+    })
+  }
+
   return NextResponse.json({ appointment: updated })
 }

@@ -6,7 +6,7 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import {
   ArrowLeft,
-  CreditCard,
+  Wallet,
   Loader2,
   Calendar,
   User,
@@ -49,19 +49,8 @@ export default function StepThree({
         return
       }
 
-      if (data.url && data.token) {
-        const form = document.createElement("form")
-        form.action = data.url
-        form.method = "POST"
-
-        const tokenInput = document.createElement("input")
-        tokenInput.type = "hidden"
-        tokenInput.name = "token_ws"
-        tokenInput.value = data.token
-
-        form.appendChild(tokenInput)
-        document.body.appendChild(form)
-        form.submit()
+      if (data.paymentUrl) {
+        window.location.href = data.paymentUrl
       } else {
         setError("Respuesta invalida del servidor")
         setLoading(false)
@@ -177,10 +166,10 @@ export default function StepThree({
               Procesando...
             </>
           ) : (
-            <>
-              <CreditCard className="w-4 h-4" />
-              Pagar con Webpay
-            </>
+              <>
+                <Wallet className="w-4 h-4" />
+                Ir a pagar
+              </>
           )}
         </button>
       </div>
