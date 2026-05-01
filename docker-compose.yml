@@ -1,0 +1,11 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: barberia-booking-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: barberia
+      POSTGRES_PASSWORD: barberia123
+      POSTGRES_DB: barberia_db
+    ports:
+      - "5491:5432"

@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  lastName  String?
+  rut       String?
+  phone     String?
+  role      Role     @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments Appointment[]
+}
+
+enum Role {
+  ADMIN
+  PROFESSIONAL
+  CUSTOMER
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String?
+  duration    Int
+  price       Int
+  deposit     Int
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  appointments Appointment[]
+}
+
+model Appointment {
+  id            String   @id @default(cuid())
+  date          DateTime // Fecha y hora exacta de la cita
+  status        AppointmentStatus @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentRef    String?  // Token de Webpay
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentStatus {
+  PENDING
+  DEPOSIT_PAID
+  FULLY_PAID
+  REFUNDED
+}
+
+model BusinessSettings {
+  id           String  @id @default(cuid())
+  name         String  @default("Barbería & Estética")
+  address      String?
+  phone        String?
+  email        String?
+  instagram    String?
+  mapsEmbedUrl String?
+
+  @@map("business_settings")
+}
+
+model BusinessHours {
+  id        String  @id @default(cuid())
+  weekday   Int     @unique // 0=Domingo, 1=Lunes ... 6=Sabado
+  isOpen    Boolean @default(true)
+  openTime  String  @default("09:00") // HH:mm
+  closeTime String  @default("19:00") // HH:mm
+
+  @@map("business_hours")
+}
