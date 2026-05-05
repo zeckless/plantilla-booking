@@ -45,10 +45,10 @@ model Service {
 
 model Appointment {
   id            String   @id @default(cuid())
-  date          DateTime // Fecha y hora exacta de la cita
+  date          DateTime
   status        AppointmentStatus @default(PENDING)
   paymentStatus PaymentStatus @default(PENDING)
-  paymentRef    String?  // Token de Webpay
+  paymentRef    String?
   confirmToken  String?
   cancelToken   String?
   notes         String?
@@ -61,6 +61,11 @@ model Appointment {
 
   serviceId String
   service   Service @relation(fields: [serviceId], references: [id])
+
+  @@index([date])
+  @@index([userId])
+  @@index([status])
+  @@index([date, status])
 }
 
 enum AppointmentStatus {
@@ -148,6 +153,7 @@ model TimeSlot {
   isBooked  Boolean  @default(false)
   createdAt DateTime @default(now())
 
+  @@index([datetime, isBooked])
   @@map("time_slots")
 }
 

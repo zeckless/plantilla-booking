@@ -90,6 +90,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Upsert user fuera de la transacción (no afecta la disponibilidad del slot)
     const user = await prisma.user.upsert({
       where: { email: contactInfo.email },
       update: {
@@ -109,24 +110,46 @@ export async function POST(request: NextRequest) {
 
     const confirmToken = generateToken()
     const cancelToken = generateToken()
-    const appointment = await prisma.appointment.create({
-      data: {
-        date: appointmentDate,
-        userId: user.id,
-        serviceId: service.id,
-        notes: contactInfo.notes,
-        status: "PENDING",
-        paymentStatus: "PENDING",
-        confirmToken,
-        cancelToken,
-      },
+
+    // Transacción atómica: verificar disponibilidad + crear cita + bloquear slot
+    // Si dos personas reservan el mismo horario al mismo instante, solo una gana
+    const appointment = await prisma.$transaction(async (tx) => {
+      // Re-verificar dentro de la transacción para evitar race condition
+      const slotConflict = await tx.appointment.findFirst({
+        where: {
+          date: appointmentDate,
+          status: { in: ["PENDING", "CONFIRMED"] },
+        },
+      })
+      if (slotConflict) {
+        throw new Error("SLOT_TAKEN")
+      }
+
+      const newAppointment = await tx.appointment.create({
+        data: {
+          date: appointmentDate,
+          userId: user.id,
+          serviceId: service.id,
+          notes: contactInfo.notes,
+          status: "PENDING",
+          paymentStatus: "PENDING",
+          confirmToken,
+          cancelToken,
+        },
+      })
+
+      await tx.timeSlot.updateMany({
+        where: { datetime: appointmentDate, isBooked: false },
+        data: { isBooked: true },
+      })
+
+      return newAppointment
     })
 
     const baseUrl =
       process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"
     const returnUrl = `${baseUrl}/api/checkout/khipu/return`
     const cancelUrl = `${baseUrl}/book/cancel?reason=user&aid=${appointment.id}`
-    // notify_url requires a public HTTPS URL — skip it in local dev
     const isLocal = baseUrl.includes("localhost")
 
     let paymentUrl: string
@@ -143,8 +166,12 @@ export async function POST(request: NextRequest) {
         notifyUrl: isLocal ? undefined : `${baseUrl}/api/checkout/khipu/notify`,
       }))
     } catch (khipuError) {
-      // Si falla el pago, eliminar la cita para que el horario quede libre
+      // Si falla el pago, revertir: eliminar cita y liberar el slot
       await prisma.appointment.delete({ where: { id: appointment.id } })
+      await prisma.timeSlot.updateMany({
+        where: { datetime: appointmentDate },
+        data: { isBooked: false },
+      })
       throw khipuError
     }
 
@@ -153,18 +180,18 @@ export async function POST(request: NextRequest) {
       data: { paymentRef: paymentId },
     })
 
-    // Mark the time slot as booked so it's no longer available
-    await prisma.timeSlot.updateMany({
-      where: { datetime: appointmentDate, isBooked: false },
-      data: { isBooked: true },
-    })
-
     return NextResponse.json({
       paymentUrl,
       paymentId,
       appointmentId: appointment.id,
     })
   } catch (error) {
+    if (error instanceof Error && error.message === "SLOT_TAKEN") {
+      return NextResponse.json(
+        { error: "Ese horario acaba de ser reservado por otra persona. Por favor elige otro." },
+        { status: 409 }
+      )
+    }
     console.error("checkout error:", error)
     return NextResponse.json(
       { error: "Error al crear transaccion" },
