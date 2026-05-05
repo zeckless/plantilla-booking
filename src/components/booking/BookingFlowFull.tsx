@@ -14,7 +14,7 @@ import StepThree from "./StepThree"
 
 const STEPS = ["Tratamiento", "Fecha y Hora", "Tus Datos", "Confirmación"]
 
-function ProgressBar({ step }: { step: number }) {
+function ProgressBar({ step, onGoToStep }: { step: number; onGoToStep: (s: number) => void }) {
   const total = STEPS.length
   const pct = Math.round(((step - 1) / (total - 1)) * 100)
 
@@ -39,17 +39,20 @@ function ProgressBar({ step }: { step: number }) {
           const current = idx === step
           return (
             <div key={label} className="flex flex-col items-center gap-1.5 flex-1">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
+              <button
+                type="button"
+                disabled={!done}
+                onClick={() => done && onGoToStep(idx)}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
                   done
-                    ? "bg-primary text-white"
+                    ? "bg-primary text-white hover:opacity-80 cursor-pointer"
                     : current
-                    ? "bg-primary text-white ring-4 ring-primary/20"
-                    : "bg-canvas border border-border text-ink-muted"
+                    ? "bg-primary text-white ring-4 ring-primary/20 cursor-default"
+                    : "bg-canvas border border-border text-ink-muted cursor-default"
                 }`}
               >
                 {done ? <Check className="w-3.5 h-3.5" /> : idx}
-              </div>
+              </button>
               <span
                 className={`text-[10px] font-medium hidden sm:block ${
                   done || current ? "text-ink-primary" : "text-ink-muted"
@@ -139,7 +142,7 @@ function BookingSummary({ businessName }: { businessName: string }) {
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-ink-secondary">Seña online</span>
+              <span className="text-ink-secondary">Abono online</span>
               <span className="font-bold text-primary text-base">
                 {formatCLP(selectedService.deposit)}
               </span>
@@ -201,7 +204,7 @@ export default function BookingFlowFull({
           {/* Main wizard */}
           <div className="bezel-outer">
             <div className="bezel-inner p-8 md:p-10">
-              <ProgressBar step={step} />
+              <ProgressBar step={step} onGoToStep={setStep} />
 
               {step === 1 && (
                 <StepZero services={services} onNext={() => setStep(2)} />

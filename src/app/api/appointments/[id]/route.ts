@@ -34,6 +34,7 @@ export async function PATCH(
     data: {
       ...(body.status ? { status: body.status as Status } : {}),
       ...(body.notes !== undefined ? { notes: body.notes } : {}),
+      ...(body.reminderSent !== undefined ? { reminderSent: body.reminderSent } : {}),
     },
     include: { user: true, service: true },
   })

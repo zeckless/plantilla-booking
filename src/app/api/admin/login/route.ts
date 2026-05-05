@@ -5,7 +5,7 @@ export const runtime = "nodejs"
 
 export async function POST(request: NextRequest) {
   const { password } = await request.json()
-  if (typeof password !== "string" || !checkAdminPassword(password)) {
+  if (typeof password !== "string" || !(await checkAdminPassword(password))) {
     return NextResponse.json(
       { error: "Contrasena incorrecta" },
       { status: 401 }

@@ -12,10 +12,37 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 })
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"
+
 export const metadata: Metadata = {
-  title: "Reserva tu hora online",
+  metadataBase: new URL(APP_URL),
+  title: {
+    default: "Salon Yoe — Reserva tu hora online",
+    template: "%s | Salon Yoe",
+  },
   description:
-    "Reserva tu hora online y paga la seña con Webpay Plus. Atención en Chile.",
+    "Reserva tu hora en Salon Yoe. Tratamientos capilares, depilación y más. Agenda online rápida con pago de abono seguro.",
+  keywords: ["salon", "peluqueria", "tratamientos capilares", "depilacion", "reservas online", "Chile"],
+  authors: [{ name: "Salon Yoe" }],
+  creator: "Salon Yoe",
+  openGraph: {
+    type: "website",
+    locale: "es_CL",
+    url: APP_URL,
+    siteName: "Salon Yoe",
+    title: "Salon Yoe — Reserva tu hora online",
+    description: "Reserva tu hora en Salon Yoe. Tratamientos capilares, depilación y más.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Salon Yoe — Reserva tu hora online",
+    description: "Reserva tu hora en Salon Yoe. Tratamientos capilares, depilación y más.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
 }
 
 export default function RootLayout({
@@ -25,9 +52,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="scroll-smooth">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>
     </html>

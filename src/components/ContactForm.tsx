@@ -13,9 +13,29 @@ export default function ContactForm({ services }: { services: { name: string }[]
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setStatus("sending")
-    // Por ahora solo simula el envío — se puede conectar a email más adelante
-    await new Promise((r) => setTimeout(r, 800))
-    setStatus("sent")
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) throw new Error()
+      setStatus("sent")
+    } catch {
+      setStatus("error")
+    }
+  }
+
+  if (status === "error") {
+    return (
+      <div className="bezel-outer">
+        <div className="bezel-inner p-8 text-center space-y-3">
+          <p className="font-semibold text-red-600">Error al enviar</p>
+          <p className="text-sm text-ink-secondary">Intenta de nuevo o escríbenos directamente.</p>
+          <button onClick={() => setStatus("idle")} className="text-sm text-primary hover:underline">Reintentar</button>
+        </div>
+      </div>
+    )
   }
 
   if (status === "sent") {

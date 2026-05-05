@@ -72,7 +72,7 @@ export default function StepThree({
       <div className="mb-8">
         <h2 className="text-2xl font-semibold text-ink-primary">Confirmacion</h2>
         <p className="text-sm text-ink-secondary mt-2">
-          Revisa los detalles y paga la seña para confirmar tu turno.
+          Revisa los detalles y paga la abono para confirmar tu turno.
         </p>
       </div>
 

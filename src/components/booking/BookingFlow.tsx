@@ -149,7 +149,7 @@ function BookingSummary({ service }: { service: BookingService }) {
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-ink-secondary">Seña online</span>
+            <span className="text-ink-secondary">Abono online</span>
             <span className="font-bold text-primary text-base">
               {formatCLP(service.deposit)}
             </span>

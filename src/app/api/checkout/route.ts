@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     try {
       ;({ paymentUrl, paymentId } = await createKhipuPayment({
         amount: service.deposit,
-        subject: `Seña ${service.name} - ${contactInfo.name}${contactInfo.lastName ? ` ${contactInfo.lastName}` : ""}`,
+        subject: `Abono ${service.name} - ${contactInfo.name}${contactInfo.lastName ? ` ${contactInfo.lastName}` : ""}`,
         appointmentId: appointment.id,
         payerName: `${contactInfo.name}${contactInfo.lastName ? ` ${contactInfo.lastName}` : ""}`,
         payerEmail: contactInfo.email,

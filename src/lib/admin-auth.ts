@@ -1,13 +1,13 @@
 import { cookies } from "next/headers"
+import bcrypt from "bcryptjs"
 
 export const ADMIN_COOKIE = "admin_session"
 
+// Default hash for "admin1234" — override with ADMIN_PASSWORD_HASH in production
+const DEFAULT_HASH = "$2b$12$EEFK9kvM8OfjOEo.e9Du0u1xzZhjTWt8CNUk78MxSMp9Dc5lBb.TG"
+
 function expectedToken(): string {
   return process.env.ADMIN_SESSION_TOKEN || "dev-session-token-change-me"
-}
-
-function expectedPassword(): string {
-  return process.env.ADMIN_PASSWORD || "admin1234"
 }
 
 export async function isAdminAuthenticated(): Promise<boolean> {
@@ -31,6 +31,7 @@ export async function clearAdminSession() {
   c.delete(ADMIN_COOKIE)
 }
 
-export function checkAdminPassword(password: string): boolean {
-  return password === expectedPassword()
+export async function checkAdminPassword(password: string): Promise<boolean> {
+  const hash = process.env.ADMIN_PASSWORD_HASH || DEFAULT_HASH
+  return bcrypt.compare(password, hash)
 }

@@ -106,7 +106,7 @@ export default function StepOne({
           </h2>
           <p className="text-sm text-ink-secondary mt-1 flex items-center gap-2">
             <Clock className="w-4 h-4" /> {service.duration} min ·{" "}
-            {formatCLP(service.deposit)} de seña
+            {formatCLP(service.deposit)} de abono
           </p>
         </div>
 

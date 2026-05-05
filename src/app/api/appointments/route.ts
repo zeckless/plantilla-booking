@@ -21,9 +21,11 @@ export async function GET(request: NextRequest) {
     const d = new Date(date)
     const start = new Date(d)
     start.setHours(0, 0, 0, 0)
-    const end = new Date(start)
+    let end = new Date(start)
     if (range === "week") {
       end.setDate(end.getDate() + 7)
+    } else if (range === "month") {
+      end = new Date(start.getFullYear(), start.getMonth() + 1, 1)
     } else {
       end.setDate(end.getDate() + 1)
     }

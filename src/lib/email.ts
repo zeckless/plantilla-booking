@@ -73,10 +73,10 @@ export async function sendConfirmationEmail(args: ConfirmationEmailArgs) {
       endDate.getMinutes(),
     ],
     title: `${serviceName} - ${businessName}`,
-    description: `Reserva de ${clientName} para ${serviceName}. Seña pagada: ${formatCLP(depositPaid)}`,
+    description: `Reserva de ${clientName} para ${serviceName}. Abono pagada: ${formatCLP(depositPaid)}`,
     location: dbSettings.address || "",
     status: "CONFIRMED",
-    busyPriority: 5,
+
     organizer: { name: businessName, email: businessEmail },
     attendees: [{ name: clientName, email: to }],
   })
@@ -156,7 +156,7 @@ export async function sendConfirmationEmail(args: ConfirmationEmailArgs) {
                         <td>
                           <table width="100%" cellpadding="0" cellspacing="0">
                             <tr>
-                              <td style="font-size:14px;color:#6b6460;padding-bottom:8px;">Seña pagada</td>
+                              <td style="font-size:14px;color:#6b6460;padding-bottom:8px;">Abono pagada</td>
                               <td style="font-size:14px;font-weight:600;color:#1a1612;text-align:right;padding-bottom:8px;">${formatCLP(depositPaid)}</td>
                             </tr>
                             <tr>

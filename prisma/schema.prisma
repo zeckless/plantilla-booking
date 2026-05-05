@@ -52,6 +52,7 @@ model Appointment {
   confirmToken  String?
   cancelToken   String?
   notes         String?
+  reminderSent  Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -86,7 +87,59 @@ model BusinessSettings {
   instagram    String?
   mapsEmbedUrl String?
 
+  // Hero
+  heroTitle    String?
+  heroSubtitle String?
+  heroImageUrl String?
+
+  // Sobre mí
+  showAbout    Boolean @default(false)
+  aboutTitle   String?
+  aboutText    String?
+  aboutImageUrl String?
+
+  // Video
+  showVideo    Boolean @default(false)
+  videoUrl     String?
+  videoCaption String?
+
   @@map("business_settings")
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  service   String?
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("contact_messages")
+}
+
+model MediaPost {
+  id        String   @id @default(cuid())
+  url       String
+  embedUrl  String
+  platform  String   // "instagram" | "tiktok"
+  caption   String?
+  isPublic  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("media_posts")
+}
+
+model GalleryImage {
+  id        String   @id @default(cuid())
+  url       String
+  caption   String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("gallery_images")
 }
 
 model TimeSlot {

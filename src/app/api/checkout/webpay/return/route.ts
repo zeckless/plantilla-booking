@@ -121,6 +121,9 @@ async function handle(request: NextRequest) {
         depositPaid: confirmed.service.deposit,
         balanceDue: confirmed.service.price - confirmed.service.deposit,
         appointmentId: confirmed.id,
+        duration: confirmed.service.duration,
+        confirmToken: confirmed.confirmToken ?? "",
+        cancelToken: confirmed.cancelToken ?? "",
       }).catch(() => {}) // already logged inside
 
       return NextResponse.redirect(
